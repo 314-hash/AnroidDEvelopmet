@@ -1,0 +1,88 @@
+[versions]
+agp = "8.7.2"
+kotlin = "2.0.20"
+coreKtx = "1.15.0"
+lifecycleRuntimeKtx = "2.8.6"
+activityCompose = "1.9.3"
+composeBom = "2024.10.00"
+
+lifecycle-viewmodel-compose = "2.8.5"
+koin-androidx-compose = "4.0.0"
+kotlinx-coroutines-core = "1.9.0"
+realm-kotlin = "3.0.0"
+app-update = "2.1.0"
+
+ktor-client-core = "3.0.0"
+androidx-splashscreen = "1.0.1"
+#logback-classic = "1.4.6"
+logback-classic = "1.2.11"
+lottie-compose = "5.2.0"
+accompanist-permissions = "0.28.0"
+coil-compose = "2.5.0"
+mapsCompose = "6.1.2"
+playServicesLocation = "21.3.0"
+playServicesMaps = "19.0.0"
+timber = "5.0.1"
+security-crypto = "1.1.0-alpha06"
+
+junit = "4.13.2"
+junitVersion = "1.2.1"
+espressoCore = "3.6.1"
+
+[libraries]
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
+androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
+androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
+androidx-ui = { group = "androidx.compose.ui", name = "ui" }
+androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
+androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
+androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
+androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+androidx-material = { module = "androidx.compose.material:material" }
+androidx-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
+
+androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle-viewmodel-compose" }
+androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle-viewmodel-compose" }
+
+koin-androidx-compose = { module = "io.insert-koin:koin-androidx-compose", version.ref = "koin-androidx-compose" }
+koin-androidx-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel", version.ref = "koin-androidx-compose" }
+koin-androidx-navigation = { module = "io.insert-koin:koin-androidx-navigation", version.ref = "koin-androidx-compose" }
+koin-androidx-compose-navigation = { module = "io.insert-koin:koin-androidx-compose-navigation", version.ref = "koin-androidx-compose" }
+
+kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinx-coroutines-core" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines-core" }
+kotlinx-coroutines-play-services = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-play-services", version.ref = "kotlinx-coroutines-core" }
+
+ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor-client-core" }
+ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor-client-core" }
+ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor-client-core" }
+ktor-client-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktor-client-core" }
+ktor-serialization-gson = { module = "io.ktor:ktor-serialization-gson", version.ref = "ktor-client-core" }
+logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback-classic" }
+realm-kotlin = { module = "io.realm.kotlin:library-base", version.ref = "realm-kotlin" }
+
+app-update = { module = "com.google.android.play:app-update", version.ref = "app-update" }
+app-update-ktx = { module = "com.google.android.play:app-update-ktx", version.ref = "app-update" }
+core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "androidx-splashscreen" }
+androidx-security-crypto = { module = "androidx.security:security-crypto", version.ref = "security-crypto" }
+lottie-compose = { module = "com.airbnb.android:lottie-compose", version.ref = "lottie-compose" }
+accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanist-permissions" }
+coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil-compose" }
+maps-compose = { module = "com.google.maps.android:maps-compose", version.ref = "mapsCompose" }
+play-services-location = { module = "com.google.android.gms:play-services-location", version.ref = "playServicesLocation" }
+play-services-maps = { module = "com.google.android.gms:play-services-maps", version.ref = "playServicesMaps" }
+timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
+
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
+androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
+androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
+androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+io-realm-kotlin = { id = "io.realm.kotlin", version.ref = "realm-kotlin" }
+
