@@ -5,6 +5,16 @@ import android.content.SharedPreferences
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -57,7 +67,12 @@ import com.pd.field_staff.utils.extension.EventEmit
 import com.pd.field_staff.utils.extension.EventState
 import com.pd.field_staff.utils.extension.animationTransition
 import org.koin.compose.koinInject
-
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.material.ripple.rememberRipple
+import androidx.compose.animation.core.*
+import androidx.compose.ui.draw.scale
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 
 class DashboardView:ComponentActivity() {
 
@@ -71,7 +86,7 @@ class DashboardView:ComponentActivity() {
         BottomNavItem(name="Settings",route = "settings", icon = Icons.Default.Settings)
     )
 
-    @OptIn(ExperimentalMaterial3Api::class)
+    @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -85,7 +100,8 @@ class DashboardView:ComponentActivity() {
                 val sharedPrefs: SharedPreferences = koinInject()
                 val navController =  rememberNavController()
                 var currentScreen by remember { mutableStateOf("Home") }
-
+                val coroutineScope = rememberCoroutineScope()
+                var topBarTextSize by remember { mutableStateOf(14.sp) }
 
                 LaunchedEffect(Unit) {
                     EventEmit.eventState.collect { eventState ->
@@ -103,7 +119,13 @@ class DashboardView:ComponentActivity() {
                         CenterAlignedTopAppBar(
                             colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White),
                             title = {
-                                Text(text = currentScreen, style = MediumStyle, fontSize = 14.sp)
+                                AnimatedContent(targetState = currentScreen,
+                                    transitionSpec = {
+                                        fadeIn(animationSpec = tween(200)) togetherWith fadeOut(animationSpec = tween(200))
+                                    }
+                                ) { targetScreen ->
+                                    Text(text = targetScreen, style = MediumStyle, fontSize = topBarTextSize)
+                                }
                             }
                         )
                     },
@@ -112,6 +134,12 @@ class DashboardView:ComponentActivity() {
                             items = navItems,
                             navController = navController,
                             onItemClick = {
+                                coroutineScope.launch {
+                                    topBarTextSize = 20.sp
+                                    kotlinx.coroutines.delay(200)
+                                    topBarTextSize = 14.sp
+                                }
+
                                 currentScreen = it.name
                                 navController.navigate(it.route)
                             }
@@ -127,16 +155,25 @@ class DashboardView:ComponentActivity() {
                         ),
                         contentAlignment = Alignment.TopCenter
                     ) {
-                        DashboardNavigation(navController = navController)
+                        AnimatedContent(targetState = navController.currentBackStackEntryAsState().value?.destination?.route,
+                            transitionSpec = {
+                                if(initialState != null) {
+                                    slideInHorizontally {
+                                        -it
+                                    } + fadeIn(animationSpec = tween(200)) togetherWith
+                                            slideOutHorizontally{
+                                                it
+                                            } + fadeOut(animationSpec = tween(200))
+                                } else {
+                                    fadeIn(animationSpec = tween(200))
+                                }
+                            }, label = "nav animation") {
+                            DashboardNavigation(navController = navController)
+                        }
+
                     }
-
-
-
-
                 }
-
             }
-
         }
     }
 
@@ -217,6 +254,11 @@ fun BottomNavigationBar(
     ) {
         items.forEach { item ->
             val selected = item.route == backStackEntry.value?.destination?.route
+            var iconScale by remember { mutableStateOf(1f) }
+            val animationScale = remember {
+                Animatable(1f)
+            }
+
             NavigationBarItem(
                 selected = selected,
                 colors = NavigationBarItemDefaults.colors(
@@ -226,11 +268,22 @@ fun BottomNavigationBar(
                     selectedIconColor = ForestGreen,
                     selectedTextColor = ForestGreen
                 ),
-                onClick = { onItemClick(item) },
+                onClick = {
+                    onItemClick(item)
+                    iconScale = 1.2f
+                     animationScale.animateTo(
+                            targetValue = 1f,
+                            animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                                    stiffness = Spring.StiffnessLow
+                            )
+                    )
+                },
                 icon = {
                     Icon(
                         imageVector = item.icon,
-                        contentDescription = null
+                        contentDescription = null,
+                        modifier = Modifier.scale(animationScale.value)
                     )
                 },
                 label = { Text(item.name, style = RegularStyle)}
@@ -238,7 +291,6 @@ fun BottomNavigationBar(
         }
     }
 }
-
 
 
 
