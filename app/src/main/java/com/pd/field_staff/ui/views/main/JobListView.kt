@@ -1,6 +1,19 @@
 package com.pd.field_staff.ui.views.main
 
 import android.content.Intent
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -18,8 +31,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.IconButton
 import androidx.compose.material.ModalBottomSheetLayout
+import androidx.compose.material.ModalBottomSheetState
 import androidx.compose.material.ModalBottomSheetValue
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Message
@@ -27,6 +42,7 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material.rememberModalBottomSheetState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -47,6 +63,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -69,7 +86,7 @@ import com.pd.field_staff.utils.extension.CacheUtils
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
 fun JobListView(category: Int?) {
 
@@ -117,19 +134,28 @@ fun JobListView(category: Int?) {
         }
     }
 
+
     ModalBottomSheetLayout(
         sheetState = modalSheetState,
         sheetShape = RoundedCornerShape(topStart = 15.dp, topEnd = 15.dp),
         sheetContent = {
-            when(jobAction){
-                JobItemSelected.SKIP -> ShowSkipForm()
-                JobItemSelected.MESSAGE -> MessageClientForm(
-                    onMessage = {
-                        hideModalSheet()
-                        showMessageDialog =  true
+            AnimatedVisibility(
+                visible = modalSheetState.isVisible,
+                enter = slideInVertically(animationSpec = tween(200)) + fadeIn(),
+                exit = slideOutVertically(animationSpec = tween(200)) + fadeOut()
+            ) {
+                when (jobAction) {
+                    JobItemSelected.SKIP -> ShowSkipForm()
+                    JobItemSelected.MESSAGE -> MessageClientForm(
+                        onMessage = {
+                            hideModalSheet()
+                            showMessageDialog = true
+                        }
+                    )
+
+                    else -> {
                     }
-                )
-                else -> { }
+                }
             }
         }
     ) {
@@ -158,30 +184,35 @@ fun JobListView(category: Int?) {
                         )
                     }
                 }
-                when (selectedTabIndex) {
-                    0 -> TodoJob(
-                        jobs = jobList,
-                        skipJob = { job ->
-                            selectedJob = job
-                            jobAction = JobItemSelected.SKIP
-                            showModalSheet()
-                        },
-                        messageClient = { job ->
-                            selectedJob = job
-                            jobAction = JobItemSelected.MESSAGE
-                            showModalSheet()
-                        }
-                    )
-                    1 -> InProgressJob { }
+                AnimatedContent(targetState = selectedTabIndex,
+                    transitionSpec = {
+                        fadeIn(animationSpec = tween(200)) togetherWith fadeOut(animationSpec = tween(200))
+                    }
+                    , label = "tab view") { targetState ->
+                    when (targetState) {
+                        0 -> TodoJob(
+                            jobs = jobList,
+                            skipJob = { job ->
+                                selectedJob = job
+                                jobAction = JobItemSelected.SKIP
+                                showModalSheet()
+                            },
+                            messageClient = { job ->
+                                selectedJob = job
+                                jobAction = JobItemSelected.MESSAGE
+                                showModalSheet()
+                            }
+                        )
+
+                        1 -> InProgressJob { }
+                    }
                 }
             }
 
             if(isLoading) {
                 LottieAnimationSpec(animRes = R.raw.loader_liquid_four_dot)
             }
-
         }
-
     }
 
 }
@@ -195,6 +226,8 @@ private fun TodoJob(
     val currentContext = LocalContext.current
     val lazyState = rememberLazyListState()
     var expandedJobId by remember { mutableStateOf<String?>(null) }
+    var categoryScale by remember { mutableStateOf(1f) }
+    val coroutineScope = rememberCoroutineScope()
 
     fun showJobLocation(job: JobDetail) {
         val intent = Intent(currentContext, JobLocationView::class.java)
@@ -207,6 +240,7 @@ private fun TodoJob(
         CacheUtils.selectedJob = job
         currentContext.startActivity(intent, currentContext.animationTransition())
     }
+
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -227,6 +261,14 @@ private fun TodoJob(
                         JobItemSelected.SKIP -> skipJob(job)
                         JobItemSelected.MESSAGE -> messageClient(job)
                         JobItemSelected.MAP -> showJobLocation(job)
+                    }
+                },
+                imageScale = categoryScale,
+                onImageClick = {
+                    coroutineScope.launch {
+                        categoryScale = 1.2f
+                        delay(100)
+                        categoryScale = 1f
                     }
                 }
             )
@@ -273,8 +315,29 @@ private fun JobItemView(
     job: JobDetail,
     isMenuExpanded: Boolean,
     onMenuExpand: () -> Unit,
-    onJobSelected: (JobItemSelected) -> Unit
+    onJobSelected: (JobItemSelected) -> Unit,
+    imageScale: Float,
+    onImageClick: () -> Unit
 ) {
+    var iconRotation by remember { mutableStateOf(0f) }
+    val animationRotation = remember {
+        Animatable(0f)
+    }
+    val coroutineScope = rememberCoroutineScope()
+
+    fun animateIcon() {
+        coroutineScope.launch {
+            animationRotation.animateTo(
+                targetValue = if(isMenuExpanded) 0f else 180f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            )
+            iconRotation = if(isMenuExpanded) 0f else 180f
+        }
+    }
+
     Column {
 
         Row(
@@ -287,7 +350,13 @@ private fun JobItemView(
                 contentAlignment = Alignment.BottomStart
             ) {
                 Image(
-                    modifier = Modifier.size(80.dp).clip(RoundedCornerShape(10.dp)).clipToBounds(),
+                    modifier = Modifier.size(80.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .clipToBounds()
+                        .graphicsLayer {
+                            scaleX = imageScale
+                            scaleY = imageScale
+                        }.clickable(onClick = onImageClick),
                     painter = painterResource(R.drawable.job_image),
                     contentDescription = null
                 )
@@ -371,22 +440,38 @@ private fun JobItemView(
             }
 
             Icon(
-                modifier = Modifier.clickable(onClick = onMenuExpand)
-                    .background(color = ForestGreen, shape = CircleShape).padding(10.dp),
+                modifier = Modifier.clickable(onClick = {
+                    onMenuExpand()
+                    animateIcon()
+                },
+                    interactionSource = remember {androidx.compose.material.
+                    MutableInteractionSource()} ,
+                    indication = rememberRipple(bounded = false, radius = 35.dp)
+                )
+                    .background(color = ForestGreen, shape = CircleShape).padding(10.dp).graphicsLayer {
+                        rotationZ = animationRotation.value
+                    },
                 imageVector = Icons.Default.MoreHoriz,
                 tint = Color.White,
                 contentDescription = null
             )
         }
         // menu here
-        if(isMenuExpanded){
+        AnimatedVisibility(
+            visible = isMenuExpanded,
+            enter = slideInVertically(animationSpec = tween(200)) + fadeIn(),
+            exit = slideOutVertically(animationSpec = tween(200)) + fadeOut()
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 IconButton(
-                    onClick = { onJobSelected(JobItemSelected.START) }
+                    onClick = { onJobSelected(JobItemSelected.START) },
+                    interactionSource = remember {androidx.compose.material.
+                    MutableInteractionSource()} ,
+                    indication = rememberRipple(bounded = false)
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally
@@ -402,7 +487,10 @@ private fun JobItemView(
                 }
 
                 IconButton(
-                    onClick = { onJobSelected(JobItemSelected.SKIP) }
+                    onClick = { onJobSelected(JobItemSelected.SKIP) },
+                    interactionSource = remember {androidx.compose.material.
+                    MutableInteractionSource()} ,
+                    indication = rememberRipple(bounded = false)
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally
@@ -417,7 +505,10 @@ private fun JobItemView(
                 }
 
                 IconButton(
-                    onClick = { onJobSelected(JobItemSelected.MESSAGE) }
+                    onClick = { onJobSelected(JobItemSelected.MESSAGE) },
+                    interactionSource = remember {androidx.compose.material.
+                    MutableInteractionSource()} ,
+                    indication = rememberRipple(bounded = false)
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally
@@ -432,7 +523,10 @@ private fun JobItemView(
                 }
 
                 IconButton(
-                    onClick = { onJobSelected(JobItemSelected.MAP) }
+                    onClick = { onJobSelected(JobItemSelected.MAP) },
+                    interactionSource = remember {androidx.compose.material.
+                    MutableInteractionSource()} ,
+                    indication = rememberRipple(bounded = false)
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally
@@ -445,8 +539,6 @@ private fun JobItemView(
                         Text("Map", style = RegularStyle, color = Color.Black)
                     }
                 }
-
-
             }
         }
     }
