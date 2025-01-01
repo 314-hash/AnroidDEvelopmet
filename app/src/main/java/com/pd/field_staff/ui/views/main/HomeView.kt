@@ -2,6 +2,19 @@ package com.pd.field_staff.ui.views.main
 
 import android.content.Intent
 import android.content.SharedPreferences
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -29,6 +42,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
@@ -55,6 +69,7 @@ import com.pd.field_staff.utils.extension.Utils
 import com.pd.field_staff.utils.extension.animationTransition
 import com.pd.field_staff.utils.extension.showToast
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import java.time.LocalDateTime
@@ -84,6 +99,14 @@ fun HomeView(
     var timeDuration by remember { mutableStateOf("0h 0m") }
     // TODO: save the login timestamp to shared prefs
     val startTime = LocalDateTime.of(2024, 12, 17, 13, 0, 0) // 1:00 PM
+
+    var showHistory by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
+    var iconRotation by remember { mutableStateOf(0f) }
+    val animationRotation = remember {
+        Animatable(0f)
+    }
+    var categoryScale by remember { mutableStateOf(1f) }
 
     LaunchedEffect(key1 = Unit) {
         while (true) {
@@ -134,173 +157,261 @@ fun HomeView(
     }
 
     fun timeEntry(){
-
         if (currentEntryType == EntryType.OUT) {
             showClockOutToolsDialog = true
             return
         }
         homeViewModel.timeEntry(currentEntryType)
+    }
 
+     fun animateIcon() {
+        coroutineScope.launch {
+            animationRotation.animateTo(
+                targetValue = if(showHistory) 0f else 360f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            )
+            iconRotation = if(showHistory) 0f else 360f
+        }
+        showHistory = !showHistory
     }
 
     Box(
         modifier = Modifier.fillMaxSize().padding(20.dp)
     ) {
-
-        Column(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            // user profile picture and name
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(20.dp)
-            ) {
-                Image(
-                    modifier = Modifier.size(50.dp),
-                    painter = painterResource(R.drawable.user_avatar),
-                    contentDescription = null
-                )
-                Column {
-                    Text(
-                        "Hi, Fieldworker",
-                        style = RegularStyle,
-                        fontSize = 15.sp,
-                        color = Color.Black.copy(alpha = 0.5f)
-                    )
-                    Text("Eman Nollase", style = RegularStyle)
+            AnimatedContent(targetState = true,
+                transitionSpec = {
+                    fadeIn(animationSpec = tween(200)) togetherWith fadeOut(animationSpec = tween(200))
                 }
-            }
-
-            SearchTextField { searchText -> }
-
-            Box(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp)
-                    .background(color = currentEntryType.backgroundColor)
-                    .padding(10.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(20.dp)
+            ){
+                Column(
+                    modifier = Modifier.fillMaxSize()
                 ) {
-
-                    Box(
-                        modifier = Modifier.size(100.dp)
-                            .background(color = currentEntryType.outerColor, shape = CircleShape),
-                        contentAlignment = Alignment.Center
+                    // user profile picture and name
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(20.dp)
                     ) {
-                        Box(
-                            modifier = Modifier.size(75.dp)
-                                .background(color = currentEntryType.innerColor, shape = CircleShape)
-                                .padding(10.dp).clickable(onClick = { timeEntry() }),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(currentEntryType.label.uppercase(), style = MediumStyle, color = Color.White, fontSize = 10.sp,
-                                textAlign = TextAlign.Center)
+                        Image(
+                            modifier = Modifier.size(50.dp),
+                            painter = painterResource(R.drawable.user_avatar),
+                            contentDescription = null
+                        )
+                        Column {
+                            Text(
+                                "Hi, Fieldworker",
+                                style = RegularStyle,
+                                fontSize = 15.sp,
+                                color = Color.Black.copy(alpha = 0.5f)
+                            )
+                            Text("Eman Nollase", style = RegularStyle)
                         }
                     }
 
-                    //date and time
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    SearchTextField { searchText -> }
+
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp)
+                            .background(color = currentEntryType.backgroundColor)
+                            .padding(10.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text("Today: ${currentTime.value.format(dateFormat)}", style = RegularStyle, color = Color.Gray)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(20.dp)
+                        ) {
+
+                            Box(
+                                modifier = Modifier.size(100.dp)
+                                    .background(color = currentEntryType.outerColor, shape = CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Box(
+                                    modifier = Modifier.size(75.dp)
+                                        .background(color = currentEntryType.innerColor, shape = CircleShape)
+                                        .padding(10.dp).clickable(onClick = { timeEntry() }),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(currentEntryType.label.uppercase(), style = MediumStyle, color = Color.White, fontSize = 10.sp,
+                                        textAlign = TextAlign.Center)
+                                }
+                            }
+
+                            //date and time
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Text("Today: ${currentTime.value.format(dateFormat)}", style = RegularStyle, color = Color.Gray)
+                                Text(
+                                    currentTime.value.format(clockFormat),
+                                    style = RegularStyle
+                                )
+                            }
+
+                        }
+                    }
+
+                   Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ){
+                       Text("Time History", style = RegularStyle)
+                       Icon(
+                           imageVector = Icons.Default.AccessTime,
+                           contentDescription = "time",
+                           tint = ForestGreen,
+                           modifier = Modifier
+                               .background(color = LightGreen, shape = RoundedCornerShape(5.dp))
+                               .padding(5.dp)
+                               .size(25.dp)
+                               .graphicsLayer {
+                                   rotationZ = animationRotation.value
+                               }
+                               .clickable(onClick = { animateIcon() })
+                       )
+
+                    }
+
+
+                    AnimatedVisibility(visible = showHistory,
+                       enter = slideInVertically(animationSpec = tween(200)) + fadeIn(),
+                        exit = slideOutVertically(animationSpec = tween(200)) + fadeOut()
+                    ) {
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+
+                                Icon(
+                                    modifier = Modifier.background(color = LightGreen, shape = RoundedCornerShape(5.dp)).padding(15.dp),
+                                    imageVector = Icons.Default.AccessTime,
+                                    contentDescription = "time",
+                                    tint = ForestGreen
+                                )
+
+                                Column(
+                                    modifier = Modifier.padding(start = 10.dp),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Text("7:30 am", style = RegularStyle)
+                                    Text(currentEntryType.label, style = RegularStyle)
+                                }
+                            }
+
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Text(timeDuration, style = RegularStyle, color = PDRed)
+                                Text("Duration", style = RegularStyle)
+                            }
+
+                        }
+                    }
+
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 20.dp),
+                        horizontalArrangement = Arrangement.End
+                    ) {
                         Text(
-                            currentTime.value.format(clockFormat),
-                            style = RegularStyle
+                            modifier = Modifier.clickable(onClick = ::todayHistory),
+                            text = "View Today's History",
+                            style = RegularStyle,
+                            textDecoration = TextDecoration.Underline
                         )
                     }
 
-                }
-            }
+                    Text("Service Rules/Tools", style = RegularStyle, fontSize = 13.sp)
 
-            Text("Time History", style = RegularStyle)
-
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-
-                    Icon(
-                        modifier = Modifier.background(color = LightGreen, shape = RoundedCornerShape(5.dp)).padding(15.dp),
-                        imageVector = Icons.Default.AccessTime,
-                        contentDescription = "time",
-                        tint = ForestGreen
-                    )
-
-                    Column(
-                        modifier = Modifier.padding(start = 10.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("7:30 am", style = RegularStyle)
-                        Text(currentEntryType.label, style = RegularStyle)
+                        Image(
+                            modifier = Modifier.size(75.dp).graphicsLayer {
+                                scaleX = categoryScale
+                                scaleY = categoryScale
+                            }.clickable(onClick = {
+                                coroutineScope.launch {
+                                    categoryScale = 1.2f
+                                    delay(100)
+                                    categoryScale = 1f
+                                    onJobCategory(1)
+
+                                }
+
+                            }),
+                            painter = painterResource(R.drawable.category_plow_snow),
+                            contentDescription = null
+                        )
+                        Image(
+                            modifier = Modifier.size(75.dp).graphicsLayer {
+                                scaleX = categoryScale
+                                scaleY = categoryScale
+                            }.clickable(onClick = {
+                                coroutineScope.launch {
+                                    categoryScale = 1.2f
+                                    delay(100)
+                                    categoryScale = 1f
+                                    onJobCategory(2)
+
+                                }
+                            }),
+                            painter = painterResource(R.drawable.category_landscape),
+                            contentDescription = null
+                        )
+                        Image(
+                            modifier = Modifier.size(75.dp).graphicsLayer {
+                                scaleX = categoryScale
+                                scaleY = categoryScale
+                            }.clickable(onClick = {
+                                coroutineScope.launch {
+                                    categoryScale = 1.2f
+                                    delay(100)
+                                    categoryScale = 1f
+                                    onJobCategory(3)
+                                }
+                            }),
+                            painter = painterResource(R.drawable.category_maintenance),
+                            contentDescription = null
+                        )
+                        Image(
+                            modifier = Modifier.size(75.dp).graphicsLayer {
+                                scaleX = categoryScale
+                                scaleY = categoryScale
+                            }.clickable(onClick = {
+                                coroutineScope.launch {
+                                    categoryScale = 1.2f
+                                    delay(100)
+                                    categoryScale = 1f
+                                     onJobCategory(0)
+                                }
+
+                            }),
+                            painter = painterResource(R.drawable.category_see_all),
+                            contentDescription = null
+                        )
                     }
                 }
-
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Text(timeDuration, style = RegularStyle, color = PDRed)
-                    Text("Duration", style = RegularStyle)
-                }
-
             }
-
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 20.dp),
-                horizontalArrangement = Arrangement.End
-            ) {
-                Text(
-                    modifier = Modifier.clickable(onClick = ::todayHistory),
-                    text = "View Today's History",
-                    style = RegularStyle,
-                    textDecoration = TextDecoration.Underline
-                )
-            }
-
-            Text("Service Rules/Tools", style = RegularStyle, fontSize = 13.sp)
-
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Image(
-                    modifier = Modifier.size(75.dp).clickable(onClick = { onJobCategory(1) }),
-                    painter = painterResource(R.drawable.category_plow_snow),
-                    contentDescription = null
-                )
-                Image(
-                    modifier = Modifier.size(75.dp).clickable(onClick = { onJobCategory(2) }),
-                    painter = painterResource(R.drawable.category_landscape),
-                    contentDescription = null
-                )
-                Image(
-                    modifier = Modifier.size(75.dp).clickable(onClick = { onJobCategory(3) }),
-                    painter = painterResource(R.drawable.category_maintenance),
-                    contentDescription = null
-                )
-                Image(
-                    modifier = Modifier.size(75.dp).clickable(onClick = { onJobCategory(0) }),
-                    painter = painterResource(R.drawable.category_see_all),
-                    contentDescription = null
-                )
-            }
-
-        }
 
         if(isLoading) {
             LottieAnimationSpec(animRes = R.raw.loader_liquid_four_dot)
         }
 
-        /*if(showClockedInDialog){
+       /* if(showClockedInDialog){
             ClockInDialog {
                 homeViewModel.timeEntry(EntryType.IN)
             }
@@ -323,7 +434,6 @@ fun HomeView(
             )
         }
     }
-
 }
 
 
